@@ -11,7 +11,7 @@ def create_parser():
     parser.add_argument("--batch_size", type=int, metavar="", help="Batch Size", default=128)
     parser.add_argument("-lr","--learning_rate", type=float, metavar="", help="Initial Learning Rate", default= 5e-4)
     parser.add_argument("-e","--epochs", type=int, metavar="", help="Number of Epochs", default= 2)
-    parser.add_argument("--training_samples", type=int, metavar="", help="Number of Training Samples", default= 30000)
+    parser.add_argument("--training_samples", type=int, metavar="", help="Number of Training Samples", default= 1000)
     parser.add_argument("--momentum", type=float, metavar="", help="Momentum", default= .9)
     parser.add_argument("--clip", type=int, metavar="", help="Gradient Clipping", default= 1)
     parser.add_argument("--num_workers", type=int, metavar="", help="num_workers", default= 8)

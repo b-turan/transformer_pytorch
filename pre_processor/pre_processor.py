@@ -1,6 +1,8 @@
-import datasets
 import functools
+
+import datasets
 import torch as th
+
 
 def convert_for_tokenizer(ds):
     ''' Converts dataset to required format for tokenization '''
@@ -12,6 +14,15 @@ def convert_for_tokenizer(ds):
 
 
 def _tokenize(x, tokenizer, seq_length):
+    '''
+    Tokenizes given dataset with pretrained transformer.tokenizer.
+    ------------------------------------
+    x (dict): Dataset
+    tokenizer (transformer.tokenizer): Tokenizer
+    seq_length (int): length of sequences in dataset
+    ------------------------------------
+    returns x: dataset with additional keys for tokenized version of sequences
+    '''
     prefix = "translate English to German: "
     src_encoding = tokenizer.batch_encode_plus(
             [prefix + sentence for sentence in x['en']], 
@@ -31,6 +42,8 @@ def _tokenize(x, tokenizer, seq_length):
     
 
 def _prepare_ds(tokenizer, number_of_training_samples, seq_length):
+        ''' Preparation of dataset for torch.dataloaders '''
+        print(40*'-' + ' Preparing Data' + 40*'-')
         # available wmt16 language pairs: ['cs-en', 'de-en', 'fi-en', 'ro-en', 'ru-en', 'tr-en']
         ds = datasets.load_dataset('wmt16', 'de-en') # {train, validation, test}
         print(f"Train Dataset is cut to {number_of_training_samples} samples for development purposes! Remove cutting for full training.")
@@ -40,6 +53,7 @@ def _prepare_ds(tokenizer, number_of_training_samples, seq_length):
         train_ds = train_ds.map(functools.partial(_tokenize, tokenizer=tokenizer, seq_length=seq_length), batched=True)
         validation_ds = validation_ds.map(functools.partial(_tokenize, tokenizer=tokenizer, seq_length=seq_length), batched=True)
         test_ds = test_ds.map(functools.partial(_tokenize, tokenizer=tokenizer, seq_length=seq_length), batched=True)
+        print(40*'-' + 'Data got tokenized' + 40*'-')
         # convert columns to torch tensors
         train_ds.set_format(type='torch', columns=['src_ids', 'trg_ids', 'attention_mask'])
         validation_ds.set_format(type='torch', columns=['src_ids', 'trg_ids', 'attention_mask'])
@@ -47,6 +61,7 @@ def _prepare_ds(tokenizer, number_of_training_samples, seq_length):
         return train_ds, validation_ds, test_ds 
 
 def get_dataloader(train_ds, validation_ds, test_ds, batch_size, num_workers):
+        ''' Returns train, validation, test dataloaders '''
         train_dataloader = th.utils.data.DataLoader(
                 train_ds,
                 batch_size=batch_size,
@@ -68,5 +83,6 @@ def get_dataloader(train_ds, validation_ds, test_ds, batch_size, num_workers):
                 shuffle=True,
                 num_workers=num_workers
         )
+        print(40*'-' + 'Dataloader got initialized' + 40*'-')
         return train_dataloader, validation_dataloader, test_ds
 
