@@ -3,3 +3,4 @@
 /logs/*
 /saved_logs
 /runs/*
+ *.pyc

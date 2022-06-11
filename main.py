@@ -9,8 +9,7 @@ from absl import app, flags
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from pre_processor.pre_processor import (_prepare_ds, _tokenize,
-                                         convert_for_tokenizer, get_dataloader)
+from pre_processor.pre_processor import _prepare_ds, get_dataloader
 from utils import arg_parser, utils
 
 parser = arg_parser.create_parser()
@@ -18,7 +17,7 @@ args = parser.parse_args()
 writer = SummaryWriter()
 
 # trainer specific arguments
-TRAIN = args.train
+IS_TRAINING = args.train
 BATCH_SIZE = args.batch_size
 LEARNING_RATE = args.learning_rate
 N_EPOCHS = args.epochs
@@ -143,19 +142,34 @@ if __name__ == '__main__':
     print(40*'-' + 'Calculate Number of Model Parameters' + 40*'-')
     print(f'The model has {utils.count_parameters(model):,} trainable parameters')
     # Training/Validation
-    if TRAIN:
+    if IS_TRAINING:
         print(40*'-'+'Start Training'+40*'-')
         for epoch in range(N_EPOCHS):
             start_time = time.time()
+
             train_loss = train_epoch(model, train_dataloader, optimizer, CLIP)
             valid_loss = validation_epoch(model, validation_dataloader, tokenizer)
+            
             end_time = time.time()
             epoch_mins, epoch_secs = utils.epoch_time(start_time, end_time)
+            
             print(f'Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s')
             print(f'\t Train Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}')
             print(f'\t Val. Loss: {valid_loss:.3f} |  Val. PPL: {math.exp(valid_loss):7.3f}')
+
+            # Bleu Score
             print(40*'-' + 'Calculate Bleu Score ' + 40*'-')
             sacre_bleu_score = get_bleu_score(model, validation_dataloader, tokenizer)
             print(f'\t SacreBleu Score: {sacre_bleu_score:.3f}')
+
+            # logging
+            writer.add_scalar("Loss/train", train_loss, epoch)
+            writer.add_scalar("Loss/valid", valid_loss, epoch)
+            writer.add_scalar("BLEU Score", sacre_bleu_score, epoch)
+
     else:
-        validation_epoch(model, validation_dataloader, tokenizer)
+        valid_loss = validation_epoch(model, validation_dataloader, tokenizer)
+        # Bleu Score
+        print(40*'-' + 'Calculate Bleu Score ' + 40*'-')
+        sacre_bleu_score = get_bleu_score(model, validation_dataloader, tokenizer)
+        print(f'\t SacreBleu Score: {sacre_bleu_score:.3f}')
