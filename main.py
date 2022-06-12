@@ -31,10 +31,6 @@ SEQ_LENGTH = args.seq_length
 IS_PRETRAINED = args.is_pretrained
 
 
-# remove and recreate logs folder for development purposes
-sh.rm('-r', '-f', 'logs/')
-sh.mkdir('logs')
-
 device = th.device('cuda' if th.cuda.is_available() else 'cpu')
 print("Running on Device:", device)
 
@@ -76,6 +72,7 @@ def train_epoch(model, train_dataloader, optimizer, CLIP):
             optimizer.step()
             epoch_loss += loss.item()
     return epoch_loss / len(train_dataloader)
+
 
 def validation_epoch(model, dataloader, tokenizer):
     '''
@@ -124,8 +121,12 @@ def get_bleu_score(model, dataloader, tokenizer):
         trg_decoded = tokenizer.batch_decode(trg_ids, skip_special_tokens=True) # decoded trg sentences 
         pred_seq_decoded = tokenizer.batch_decode(pred_seq, skip_special_tokens=True) # decoded output translation 
 
-        # hugging face on bleu score: https://www.youtube.com/watch?v=M05L1DhFqcw
-        sacre_bleu = datasets.load_metric('sacrebleu') # 'bleu' also possible
+
+        # original paper of SacreBLEU by Matt Post:
+        # https://arxiv.org/pdf/1804.08771.pdf
+        # additional material: 
+        # hugging face on (sacre)BLEU score https://www.youtube.com/watch?v=M05L1DhFqcw
+        sacre_bleu = datasets.load_metric('sacrebleu') # 'bleu' as input also possible
         pred_list = [[sentence] for sentence in pred_seq_decoded]
         trg_list = [[sentence] for sentence in trg_decoded]
         sacre_bleu_score += sacre_bleu.compute(predictions=pred_list, references=trg_list)['score']
@@ -139,8 +140,8 @@ if __name__ == '__main__':
     # Model Initialization
     model = build_model(tokenizer)
     optimizer = th.optim.Adam(model.parameters(), lr = LEARNING_RATE)
-    print(40*'-' + 'Calculate Number of Model Parameters' + 40*'-')
-    print(f'The model has {utils.count_parameters(model):,} trainable parameters')
+    print(40*'-' + 'Model got initialized' + 40*'-')
+    print(f'\t The model has {utils.count_parameters(model):,} trainable parameters')
     # Training/Validation
     if IS_TRAINING:
         print(40*'-'+'Start Training'+40*'-')
@@ -166,7 +167,7 @@ if __name__ == '__main__':
             writer.add_scalar("Loss/train", train_loss, epoch)
             writer.add_scalar("Loss/valid", valid_loss, epoch)
             writer.add_scalar("BLEU Score", sacre_bleu_score, epoch)
-
+        writer.flush()
     else:
         valid_loss = validation_epoch(model, validation_dataloader, tokenizer)
         # Bleu Score
