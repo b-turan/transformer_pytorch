@@ -35,15 +35,14 @@ device = th.device('cuda' if th.cuda.is_available() else 'cpu')
 print("Running on Device:", device)
 
 
-def build_model(tokenizer):
+def build_model(model_name):
     '''
     Returns T5 model (pretrained or randomly initialized)
     '''
     if IS_PRETRAINED:
         model = transformers.T5ForConditionalGeneration.from_pretrained(MODEL, torch_dtype="auto")       
     else:
-        start_token_id = tokenizer.convert_tokens_to_ids(['<pad>'])[0] # see transformers/issues/16571
-        config = transformers.T5Config(vocab_size=tokenizer.vocab_size, decoder_start_token_id=start_token_id)
+        config = transformers.AutoConfig.from_pretrained(model_name) # see transformers/issues/14674
         model = transformers.T5ForConditionalGeneration(config)
     return model
 
@@ -116,7 +115,7 @@ def get_bleu_score(model, dataloader, tokenizer):
                                 # do_sample=True, 
                                 # top_p=0.84, 
                                 # top_k=100, 
-                                # max_length=FLAGS.seq_length
+                                # max_length=SEQ_LENGTH
                                 ) # encoded translation of src sentences
         trg_decoded = tokenizer.batch_decode(trg_ids, skip_special_tokens=True) # decoded trg sentences 
         pred_seq_decoded = tokenizer.batch_decode(pred_seq, skip_special_tokens=True) # decoded output translation 
@@ -138,7 +137,7 @@ if __name__ == '__main__':
     train_ds, validation_ds, test_ds =_prepare_ds(tokenizer, number_of_training_samples=TRAINING_SAMPLES, seq_length=SEQ_LENGTH)
     train_dataloader, validation_dataloader, test_dataloader = get_dataloader(train_ds, validation_ds, test_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
     # Model Initialization
-    model = build_model(tokenizer)
+    model = build_model(MODEL)
     optimizer = th.optim.Adam(model.parameters(), lr = LEARNING_RATE)
     print(40*'-' + 'Model got initialized' + 40*'-')
     print(f'\t The model has {utils.count_parameters(model):,} trainable parameters')
