@@ -2,10 +2,8 @@ import math
 import time
 
 import datasets
-import sh
 import torch as th
 import transformers
-from absl import app, flags
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -32,7 +30,7 @@ IS_PRETRAINED = args.is_pretrained
 
 
 device = th.device('cuda' if th.cuda.is_available() else 'cpu')
-print("Running on Device:", device)
+# print("Running on Device:", device)
 
 
 def build_model(model_name):
@@ -40,10 +38,11 @@ def build_model(model_name):
     Returns T5 model (pretrained or randomly initialized)
     '''
     if IS_PRETRAINED:
-        model = transformers.T5ForConditionalGeneration.from_pretrained(MODEL, torch_dtype="auto")       
+        # TODO: check alternative loading with AutoModel.from_pretrained()
+        model = transformers.T5ForConditionalGeneration.from_pretrained(model_name, torch_dtype="auto").to(device)
     else:
         config = transformers.AutoConfig.from_pretrained(model_name) # see transformers/issues/14674
-        model = transformers.T5ForConditionalGeneration(config)
+        model = transformers.T5ForConditionalGeneration(config).to(device)
     return model
 
 
@@ -61,9 +60,9 @@ def train_epoch(model, train_dataloader, optimizer, CLIP):
     model.train()
     epoch_loss = 0
     for batch in tqdm(train_dataloader):
-            src_ids = batch['src_ids']
-            trg_ids = batch['trg_ids']
-            attention_mask = batch['attention_mask']
+            src_ids = batch['src_ids'].to(device)
+            trg_ids = batch['trg_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
             optimizer.zero_grad()
             loss = model(input_ids=src_ids, attention_mask=attention_mask, labels=trg_ids).loss     
             loss.backward()
@@ -87,9 +86,9 @@ def validation_epoch(model, dataloader, tokenizer):
     epoch_loss = 0
     with th.no_grad():
         for i, batch in enumerate(dataloader):
-            src_ids = batch['src_ids']
-            trg_ids = batch['trg_ids']
-            attention_mask = batch['attention_mask']
+            src_ids = batch['src_ids'].to(device)
+            trg_ids = batch['trg_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
             loss = model(input_ids=src_ids, attention_mask=attention_mask, labels=trg_ids).loss     
             epoch_loss += loss.item()
     return epoch_loss / len(dataloader)
@@ -105,13 +104,16 @@ def get_bleu_score(model, dataloader, tokenizer):
     ------------------------------------
     Returns sacre_bleu_score
     '''
-    # evaluate bleu score
+    # evaluate bleu score  
+    # TODO: can cuda be used for tokenizer?
     model.eval()
     sacre_bleu_score = 0
     for batch in tqdm(dataloader):
-        src_ids = batch['src_ids']
-        trg_ids = batch['trg_ids']
-        pred_seq = model.generate(src_ids
+        src_ids = batch['src_ids'].to(device)
+        trg_ids = batch['trg_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        pred_seq = model.generate(src_ids,
+                                attention_mask = attention_mask,
                                 # do_sample=True, 
                                 # top_p=0.84, 
                                 # top_k=100, 
@@ -119,8 +121,7 @@ def get_bleu_score(model, dataloader, tokenizer):
                                 ) # encoded translation of src sentences
         trg_decoded = tokenizer.batch_decode(trg_ids, skip_special_tokens=True) # decoded trg sentences 
         pred_seq_decoded = tokenizer.batch_decode(pred_seq, skip_special_tokens=True) # decoded output translation 
-
-
+        
         # original paper of SacreBLEU by Matt Post:
         # https://arxiv.org/pdf/1804.08771.pdf
         # additional material: 
@@ -133,14 +134,18 @@ def get_bleu_score(model, dataloader, tokenizer):
 
 if __name__ == '__main__':
     tokenizer = transformers.T5Tokenizer.from_pretrained(MODEL)
+    
     # Data Preprocessing
     train_ds, validation_ds, test_ds =_prepare_ds(tokenizer, number_of_training_samples=TRAINING_SAMPLES, seq_length=SEQ_LENGTH)
     train_dataloader, validation_dataloader, test_dataloader = get_dataloader(train_ds, validation_ds, test_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
+   
     # Model Initialization
     model = build_model(MODEL)
     optimizer = th.optim.Adam(model.parameters(), lr = LEARNING_RATE)
+    
     print(40*'-' + 'Model got initialized' + 40*'-')
     print(f'\t The model has {utils.count_parameters(model):,} trainable parameters')
+
     # Training/Validation
     if IS_TRAINING:
         print(40*'-'+'Start Training'+40*'-')
