@@ -3,4 +3,5 @@
 /logs/*
 /runs/*
 # pycache files
+*/__pycache__
 *.pyc 
