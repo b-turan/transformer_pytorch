@@ -11,7 +11,7 @@ from pre_processor.pre_processor import _prepare_ds, get_dataloader
 from utils import arg_parser, utils
 
 device = th.device('cuda' if th.cuda.is_available() else 'cpu')
-# print("Running on Device:", device)
+print("Running on Device:", device)
 
 
 def build_model(model_name, IS_PRETRAINED):
