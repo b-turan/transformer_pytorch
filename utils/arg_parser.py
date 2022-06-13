@@ -10,6 +10,7 @@ def create_parser():
     parser.add_argument("-g", "--gpus", type=int, metavar="", help="Number of GPUS, (None for CPU)", default=1)
     parser.add_argument("--batch_size", type=int, metavar="", help="Batch Size", default=128)
     parser.add_argument("-lr","--learning_rate", type=float, metavar="", help="Initial Learning Rate", default= 5e-4)
+    parser.add_argument("--num_warmup_steps", type=int, metavar="", help="Number of Warmup Steps", default= 100)
     parser.add_argument("-e","--epochs", type=int, metavar="", help="Number of Epochs", default= 2)
     parser.add_argument("--training_samples", type=int, metavar="", help="Number of Training Samples", default= 1000)
     parser.add_argument("--momentum", type=float, metavar="", help="Momentum", default= .9)

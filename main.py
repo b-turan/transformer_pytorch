@@ -53,10 +53,11 @@ def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP):
             lr_scheduler.step()
             optimizer.zero_grad()
             epoch_loss += loss.item()
+            print(lr_scheduler.get_last_lr())
     return epoch_loss / len(train_dataloader)
 
 
-def validation_epoch(model, dataloader, tokenizer):
+def validation_epoch(model, dataloader):
     '''
     Evaluates model on the entire dataset.
     ------------------------------------
@@ -127,6 +128,7 @@ def main():
     IS_TRAINING = args.train
     BATCH_SIZE = args.batch_size
     LEARNING_RATE = args.learning_rate
+    NUM_WARMUP_STEPS = args.num_warmup_steps
     N_EPOCHS = args.epochs
     CLIP = args.clip
     NUM_WORKERS = args.num_workers
@@ -149,7 +151,8 @@ def main():
     optimizer = th.optim.Adam(model.parameters(), lr = LEARNING_RATE)
     num_training_steps = N_EPOCHS * len(train_dataloader)
     lr_scheduler = transformers.get_scheduler(name="linear", optimizer=optimizer, 
-                                              num_warmup_steps=0, num_training_steps=num_training_steps)
+                                              num_warmup_steps=NUM_WARMUP_STEPS, 
+                                              num_training_steps=num_training_steps)
     
     print(40*'-' + 'Model got initialized' + 40*'-')
     print(f'\t The model has {utils.count_parameters(model):,} trainable parameters')
@@ -161,7 +164,7 @@ def main():
             start_time = time.time()
 
             train_loss = train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP)
-            valid_loss = validation_epoch(model, validation_dataloader, tokenizer)
+            valid_loss = validation_epoch(model, validation_dataloader)
             
             end_time = time.time()
             epoch_mins, epoch_secs = utils.epoch_time(start_time, end_time)
