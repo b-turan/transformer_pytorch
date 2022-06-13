@@ -10,36 +10,19 @@ from tqdm import tqdm
 from pre_processor.pre_processor import _prepare_ds, get_dataloader
 from utils import arg_parser, utils
 
-parser = arg_parser.create_parser()
-args = parser.parse_args()
-writer = SummaryWriter()
-
-# trainer specific arguments
-IS_TRAINING = args.train
-BATCH_SIZE = args.batch_size
-LEARNING_RATE = args.learning_rate
-N_EPOCHS = args.epochs
-CLIP = args.clip
-NUM_WORKERS = args.num_workers
-MOMENTUM = args.momentum
-TRAINING_SAMPLES = args.training_samples
-# model specific arguments
-MODEL = args.model
-SEQ_LENGTH = args.seq_length
-IS_PRETRAINED = args.is_pretrained
-
-
 device = th.device('cuda' if th.cuda.is_available() else 'cpu')
 # print("Running on Device:", device)
 
 
-def build_model(model_name):
+def build_model(model_name, IS_PRETRAINED):
     '''
     Returns T5 model (pretrained or randomly initialized)
     '''
     if IS_PRETRAINED:
         # TODO: check alternative loading with AutoModel.from_pretrained()
-        model = transformers.T5ForConditionalGeneration.from_pretrained(model_name, torch_dtype="auto").to(device)
+        model = transformers.T5ForConditionalGeneration.from_pretrained(model_name, 
+                                                                        torch_dtype="auto"
+                                                                        ).to(device)
     else:
         config = transformers.AutoConfig.from_pretrained(model_name) # see transformers/issues/14674
         model = transformers.T5ForConditionalGeneration(config).to(device)
@@ -135,17 +118,38 @@ def get_bleu_score(model, dataloader, tokenizer):
 
 
 def main():
-    tokenizer = transformers.T5Tokenizer.from_pretrained(MODEL)
+    parser = arg_parser.create_parser()
+    args = parser.parse_args()
+    # initialize tensorboard
+    writer = SummaryWriter() 
     
-    # Data Preprocessing
-    train_ds, validation_ds, test_ds =_prepare_ds(tokenizer, number_of_training_samples=TRAINING_SAMPLES, seq_length=SEQ_LENGTH)
-    train_dataloader, validation_dataloader, test_dataloader = get_dataloader(train_ds, validation_ds, test_ds, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
-   
+    # trainer specific arguments
+    IS_TRAINING = args.train
+    BATCH_SIZE = args.batch_size
+    LEARNING_RATE = args.learning_rate
+    N_EPOCHS = args.epochs
+    CLIP = args.clip
+    NUM_WORKERS = args.num_workers
+    MOMENTUM = args.momentum
+    TRAINING_SAMPLES = args.training_samples
+    # model specific arguments
+    MODEL = args.model
+    SEQ_LENGTH = args.seq_length
+    IS_PRETRAINED = args.is_pretrained
+
+    # initialize pretrained tokenizer
+    tokenizer = transformers.T5Tokenizer.from_pretrained(MODEL) 
+    # data pre-processing
+    train_ds, validation_ds, test_ds =_prepare_ds(tokenizer, number_of_training_samples=TRAINING_SAMPLES, 
+                                                seq_length=SEQ_LENGTH)
+    train_dataloader, validation_dataloader, _ = get_dataloader(train_ds, validation_ds, test_ds, 
+                                                                batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
     # Model Initialization
-    model = build_model(MODEL)
+    model = build_model(MODEL, IS_PRETRAINED)
     optimizer = th.optim.Adam(model.parameters(), lr = LEARNING_RATE)
     num_training_steps = N_EPOCHS * len(train_dataloader)
-    lr_scheduler = transformers.get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
+    lr_scheduler = transformers.get_scheduler(name="linear", optimizer=optimizer, 
+                                              num_warmup_steps=0, num_training_steps=num_training_steps)
     
     print(40*'-' + 'Model got initialized' + 40*'-')
     print(f'\t The model has {utils.count_parameters(model):,} trainable parameters')
