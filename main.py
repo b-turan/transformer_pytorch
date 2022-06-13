@@ -89,7 +89,7 @@ def get_bleu_score(model, dataloader, tokenizer):
     Returns sacre_bleu_score
     '''
     # evaluate bleu score  
-    # TODO: can cuda be used for tokenizer?
+    # TODO: can tokenizer be used with cuda?
     model.eval()
     sacre_bleu_score = 0
     for batch in tqdm(dataloader):
