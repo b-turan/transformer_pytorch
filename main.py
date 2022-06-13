@@ -46,7 +46,7 @@ def build_model(model_name):
     return model
 
 
-def train_epoch(model, train_dataloader, optimizer, CLIP):
+def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP):
     '''
     Trains model on the entire dataset for one epoch.
     ------------------------------------
@@ -63,11 +63,12 @@ def train_epoch(model, train_dataloader, optimizer, CLIP):
             src_ids = batch['src_ids'].to(device)
             trg_ids = batch['trg_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
-            optimizer.zero_grad()
             loss = model(input_ids=src_ids, attention_mask=attention_mask, labels=trg_ids).loss     
             loss.backward()
             th.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
             optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
             epoch_loss += loss.item()
     return epoch_loss / len(train_dataloader)
 
@@ -143,6 +144,8 @@ def main():
     # Model Initialization
     model = build_model(MODEL)
     optimizer = th.optim.Adam(model.parameters(), lr = LEARNING_RATE)
+    num_training_steps = N_EPOCHS * len(train_dataloader)
+    lr_scheduler = transformers.get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps)
     
     print(40*'-' + 'Model got initialized' + 40*'-')
     print(f'\t The model has {utils.count_parameters(model):,} trainable parameters')
@@ -153,7 +156,7 @@ def main():
         for epoch in range(N_EPOCHS):
             start_time = time.time()
 
-            train_loss = train_epoch(model, train_dataloader, optimizer, CLIP)
+            train_loss = train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP)
             valid_loss = validation_epoch(model, validation_dataloader, tokenizer)
             
             end_time = time.time()
