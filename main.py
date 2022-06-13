@@ -132,7 +132,8 @@ def get_bleu_score(model, dataloader, tokenizer):
         sacre_bleu_score += sacre_bleu.compute(predictions=pred_list, references=trg_list)['score']
     return sacre_bleu_score/len(dataloader)
 
-if __name__ == '__main__':
+
+def main():
     tokenizer = transformers.T5Tokenizer.from_pretrained(MODEL)
     
     # Data Preprocessing
@@ -178,3 +179,7 @@ if __name__ == '__main__':
         print(40*'-' + 'Calculate Bleu Score ' + 40*'-')
         sacre_bleu_score = get_bleu_score(model, validation_dataloader, tokenizer)
         print(f'\t SacreBleu Score: {sacre_bleu_score:.3f}')
+
+
+if __name__ == '__main__':
+    main()
