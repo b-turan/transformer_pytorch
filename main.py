@@ -175,11 +175,11 @@ def get_bleu_score(model, dataloader, tokenizer):
         trg_ids = batch['trg_ids'].to(device)
         attention_mask = batch['attention_mask'].to(device)
         pred_seq = model.generate(src_ids,
-                                attention_mask = attention_mask,
+                                # attention_mask = attention_mask,
                                 # do_sample=True, 
                                 # top_p=0.84, 
                                 # top_k=100, 
-                                # max_length=SEQ_LENGTH
+                                # max_length=32
                                 ) # encoded translation of src sentences
         trg_decoded = tokenizer.batch_decode(trg_ids, skip_special_tokens=True) # decoded trg sentences 
         pred_seq_decoded = tokenizer.batch_decode(pred_seq, skip_special_tokens=True) # decoded output translation 
