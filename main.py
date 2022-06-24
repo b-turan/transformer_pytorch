@@ -6,6 +6,7 @@ import torch as th
 import transformers
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from transformers import Trainer, TrainingArguments
 
 from pre_processor.pre_processor import _prepare_ds, get_dataloader
 from utils import arg_parser, utils
@@ -55,36 +56,23 @@ def main():
 
     # Training/Validation
     if IS_TRAINING:
-        print(40*'-'+'Start Training'+40*'-')
-        for epoch in range(N_EPOCHS):
-            start_time = time.time()
+        # TODO: remove train and validation routine and add HF Trainer
+        training_args = TrainingArguments(output_dir='runs/',
+                                        num_train_epochs=N_EPOCHS,
+                                        learning_rate=LEARNING_RATE,
+                                        per_device_train_batch_size=BATCH_SIZE,
+                                        per_device_eval_batch_size=BATCH_SIZE,
+                                        weight_decay=0.01,
+                                        evaluation_strategy="epoch",
+                                        disable_tqdm=False,
+                                        log_level="error",
+                                        max_grad_norm=CLIP)
 
-            train_loss = train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP)
-            valid_loss = validation_epoch(model, validation_dataloader)
-            
-            end_time = time.time()
-            epoch_mins, epoch_secs = utils.epoch_time(start_time, end_time)
-            
-            print(f'Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s')
-            print(f'\t Train Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}')
-            print(f'\t Val. Loss: {valid_loss:.3f} |  Val. PPL: {math.exp(valid_loss):7.3f}')
-
-            # Bleu Score
-            print(40*'-' + 'Calculate Bleu Score ' + 40*'-')
-            sacre_bleu_score = get_bleu_score(model, validation_dataloader, tokenizer)
-            print(f'\t SacreBleu Score: {sacre_bleu_score:.3f}')
-
-            # logging
-            writer.add_scalar("Loss/train", train_loss, epoch)
-            writer.add_scalar("Loss/valid", valid_loss, epoch)
-            writer.add_scalar("BLEU Score", sacre_bleu_score, epoch)
-        writer.flush()
-    else:
-        valid_loss = validation_epoch(model, validation_dataloader, tokenizer)
-        # Bleu Score
-        print(40*'-' + 'Calculate Bleu Score ' + 40*'-')
-        sacre_bleu_score = get_bleu_score(model, validation_dataloader, tokenizer)
-        print(f'\t SacreBleu Score: {sacre_bleu_score:.3f}')
+        trainer = Trainer(model=model, args=training_args,
+                        train_dataset=train_ds,
+                        eval_dataset=validation_ds,
+                        tokenizer=tokenizer)
+        trainer.train()
 
 
 def build_model(model_name, IS_PRETRAINED):
@@ -116,10 +104,10 @@ def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP):
     model.train()
     epoch_loss = 0
     for batch in tqdm(train_dataloader):
-            src_ids = batch['src_ids'].to(device)
+            input_ids = batch['input_ids'].to(device)
             trg_ids = batch['trg_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
-            loss = model(input_ids=src_ids, attention_mask=attention_mask, labels=trg_ids).loss     
+            loss = model(input_ids=input_ids, attention_mask=attention_mask, labels=trg_ids).loss     
             loss.backward()
             th.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
             optimizer.step()
@@ -144,10 +132,10 @@ def validation_epoch(model, dataloader):
     epoch_loss = 0
     with th.no_grad():
         for i, batch in enumerate(dataloader):
-            src_ids = batch['src_ids'].to(device)
+            input_ids = batch['input_ids'].to(device)
             trg_ids = batch['trg_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
-            loss = model(input_ids=src_ids, attention_mask=attention_mask, labels=trg_ids).loss     
+            loss = model(input_ids=input_ids, attention_mask=attention_mask, labels=trg_ids).loss     
             epoch_loss += loss.item()
     return epoch_loss / len(dataloader)
 
@@ -167,10 +155,10 @@ def get_bleu_score(model, dataloader, tokenizer):
     model.eval()
     sacre_bleu_score = 0
     for batch in tqdm(dataloader):
-        src_ids = batch['src_ids'].to(device)
+        input_ids = batch['input_ids'].to(device)
         trg_ids = batch['trg_ids'].to(device)
         attention_mask = batch['attention_mask'].to(device)
-        pred_seq = model.generate(src_ids,
+        pred_seq = model.generate(input_ids,
                                 attention_mask = attention_mask,
                                 # do_sample=True, 
                                 # top_p=0.84, 
