@@ -57,7 +57,7 @@ def main():
     # Training/Validation
     if IS_TRAINING:
         # TODO: remove train and validation routine and add HF Trainer
-        training_args = TrainingArguments(output_dir='runs/',
+        training_args = TrainingArguments(output_dir='./',
                                         num_train_epochs=N_EPOCHS,
                                         learning_rate=LEARNING_RATE,
                                         per_device_train_batch_size=BATCH_SIZE,
