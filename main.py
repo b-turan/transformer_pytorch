@@ -56,7 +56,7 @@ def main():
 
     # Training/Validation
     if IS_TRAINING:
-        # TODO: remove train and validation routine and add HF Trainer
+        # TODO: add correctly implemented hugging face trainer
         training_args = TrainingArguments(output_dir='./',
                                         num_train_epochs=N_EPOCHS,
                                         learning_rate=LEARNING_RATE,
