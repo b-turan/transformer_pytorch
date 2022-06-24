@@ -30,7 +30,7 @@ def _tokenize(x, tokenizer, seq_length):
             padding="longest",
             truncation=True,
             )
-    x['src_ids'] = src_encoding.input_ids
+    x['input_ids'] = src_encoding.input_ids
     x['attention_mask'] = src_encoding.attention_mask
     x['trg_ids'] = tokenizer.batch_encode_plus(
             x['de'], 
@@ -55,9 +55,9 @@ def _prepare_ds(tokenizer, number_of_training_samples, seq_length):
         test_ds = test_ds.map(functools.partial(_tokenize, tokenizer=tokenizer, seq_length=seq_length), batched=True)
         print(40*'-' + 'Data got tokenized' + 40*'-')
         # convert columns to torch tensors
-        train_ds.set_format(type='torch', columns=['src_ids', 'trg_ids', 'attention_mask'])
-        validation_ds.set_format(type='torch', columns=['src_ids', 'trg_ids', 'attention_mask'])
-        test_ds.set_format(type='torch', columns=['src_ids', 'trg_ids', 'attention_mask'])    
+        train_ds.set_format(type='torch', columns=['input_ids', 'trg_ids', 'attention_mask'])
+        validation_ds.set_format(type='torch', columns=['input_ids', 'trg_ids', 'attention_mask'])
+        test_ds.set_format(type='torch', columns=['input_ids', 'trg_ids', 'attention_mask'])    
         return train_ds, validation_ds, test_ds 
 
 def get_dataloader(train_ds, validation_ds, test_ds, batch_size, num_workers):
