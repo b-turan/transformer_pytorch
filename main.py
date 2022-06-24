@@ -59,7 +59,7 @@ def main():
         for epoch in range(N_EPOCHS):
             start_time = time.time()
 
-            train_loss = train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP)
+            train_loss = train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, tokenizer)
             valid_loss = validation_epoch(model, validation_dataloader)
             
             end_time = time.time()
@@ -102,7 +102,7 @@ def build_model(model_name, IS_PRETRAINED):
     return model
 
 
-def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP):
+def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, tokenizer):
     '''
     Trains model on the entire dataset for one epoch.
     ------------------------------------
@@ -119,6 +119,10 @@ def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP):
             src_ids = batch['src_ids'].to(device)
             trg_ids = batch['trg_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
+
+            trg_ids = th.tensor(trg_ids)
+
+            trg_ids[trg_ids == tokenizer.pad_token_id] = -100
             loss = model(input_ids=src_ids, attention_mask=attention_mask, labels=trg_ids).loss     
             loss.backward()
             th.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
