@@ -7,3 +7,4 @@
 *.pyc 
 test.py
 /distilbert-base-uncased-finetuned-emotion
+/saved_logs/runs
