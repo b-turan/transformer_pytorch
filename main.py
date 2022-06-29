@@ -8,7 +8,7 @@ import transformers
 from torch.utils.tensorboard import SummaryWriter
 
 from pre_processor.pre_processor import get_dataloader, tokenize_datasets
-from training_func.epoch import get_bleu_score, train_epoch, validation_epoch
+from training_func.epoch import train_epoch, validation_epoch
 from utils import arg_parser, utils
 
 device = th.device('cuda' if th.cuda.is_available() else 'cpu')
@@ -94,9 +94,11 @@ def main():
             writer.add_scalar("SacreBLEU/valid", bleu_results['score'], epoch)
         writer.flush()
     else:
-        # TODO: rewrite
-        # validation loop (sacrebleu score)
+        # TODO: finish implementation
+        # validation loop
         bleu_results = validation_epoch(model, validation_dataloader, metric, tokenizer, device)
+        print(f"epoch {epoch}, BLEU score: {bleu_results['score']:.2f}")
+
 
 if __name__ == '__main__':
     main()
