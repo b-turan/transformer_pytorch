@@ -1,6 +1,6 @@
 /.vscode
 /__pycache__
-/logs/*
+/logs_saved/*
 /runs/*
 # pycache files
 */__pycache__
