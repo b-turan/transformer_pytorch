@@ -8,11 +8,11 @@ def create_parser():
     parser = argparse.ArgumentParser(description="Transformer Model for Translation")
     # Trainer args  (gpus, epochs etc.)
     parser.add_argument("-g", "--gpus", type=int, metavar="", help="Number of GPUS, (None for CPU)", default=1)
-    parser.add_argument("--batch_size", type=int, metavar="", help="Batch Size", default=128)
+    parser.add_argument("--batch_size", type=int, metavar="", help="Batch Size", default=8)
     parser.add_argument("-lr","--learning_rate", type=float, metavar="", help="Initial Learning Rate", default= 5e-4)
     parser.add_argument("--num_warmup_steps", type=int, metavar="", help="Number of Warmup Steps", default= 100)
     parser.add_argument("-e","--epochs", type=int, metavar="", help="Number of Epochs", default= 2)
-    parser.add_argument("--training_samples", type=int, metavar="", help="Number of Training Samples", default= 1000)
+    parser.add_argument("--n_samples", type=int, metavar="", help="Number of Samples", default= 20000)
     parser.add_argument("--momentum", type=float, metavar="", help="Momentum", default= .9)
     parser.add_argument("--clip", type=int, metavar="", help="Gradient Clipping", default= 1)
     parser.add_argument("--num_workers", type=int, metavar="", help="num_workers", default= 8)
@@ -20,10 +20,11 @@ def create_parser():
     # Model specific arguments
     parser.add_argument('--is_pretrained', action=argparse.BooleanOptionalAction)
     parser.add_argument("--model", type=str, metavar="", help="Choice of Dataset", default="t5-small")
-    parser.add_argument("--seq_length", type=int, metavar="", help="seq_length", default=32)
-
+    parser.add_argument("--max_input_length", type=int, metavar="", help="Maximal Number of Tokens per Sentence in Input Sequences", default=128)
+    parser.add_argument("--max_target_length", type=int, metavar="", help="Maximal Number of Tokens per Sentence in Target Sequences", default=128)
     # Program arguments (data_path, save_dir, etc.)
-    parser.add_argument("--seed", type=int, metavar="", help="Seed Choice", default=1234)
+    parser.add_argument("--seed", type=int, metavar="", help="Seed Choice", default=42)
+    parser.add_argument('--debug', action=argparse.BooleanOptionalAction)
 
     return parser
 

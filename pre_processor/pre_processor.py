@@ -2,87 +2,75 @@ import functools
 
 import datasets
 import torch as th
+import transformers
 
 
-def convert_for_tokenizer(ds):
-    ''' Converts dataset to required format for tokenization '''
-    new_ds = {} # re-init dictionary
-    new_ds['de'] = [translation['de'] for translation in ds['translation']] # collect src sentences
-    new_ds['en'] = [translation['en'] for translation in ds['translation']] # collect trg sentences
-    new_ds = datasets.Dataset.from_dict(new_ds)
-    return new_ds
-
-
-def _tokenize(x, tokenizer, seq_length):
-    '''
-    Tokenizes given dataset with pretrained transformer.tokenizer.
-    ------------------------------------
-    x (dict): Dataset
-    tokenizer (transformer.tokenizer): Tokenizer
-    seq_length (int): length of sequences in dataset
-    ------------------------------------
-    returns x: dataset with additional keys for tokenized version of sequences
-    '''
+def preprocess_function(examples, tokenizer, max_input_length, max_target_length):
     prefix = "translate English to German: "
-    src_encoding = tokenizer.batch_encode_plus(
-            [prefix + sentence for sentence in x['en']], 
-            max_length=seq_length, 
-            padding="longest",
-            truncation=True,
-            )
-    x['src_ids'] = src_encoding.input_ids
-    x['attention_mask'] = src_encoding.attention_mask
-    x['trg_ids'] = tokenizer.batch_encode_plus(
-            x['de'], 
-            max_length=seq_length, 
-            padding="longest",
-            truncation=True,
-            )['input_ids']
-    return x
+    inputs = [prefix + ex["en"] for ex in examples["translation"]]
+    targets = [ex["de"] for ex in examples["translation"]]
+    model_inputs = tokenizer(inputs, max_length=max_input_length, truncation=True)
+
+    # Set up the tokenizer for targets
+    with tokenizer.as_target_tokenizer():
+            labels = tokenizer(targets, max_length=max_target_length, truncation=True)
+
+    model_inputs["labels"] = labels["input_ids"]
+    return model_inputs
+
+
+def tokenize_datasets(tokenizer, n_samples, max_input_length, max_target_length, debug):
+    '''
+    Tokenizes WMT16 dataset for dataloader. 
+    Available WMT16 language pairs: ['cs-en', 'de-en', 'fi-en', 'ro-en', 'ru-en', 'tr-en']
+    ------------------------------------------------------------------------------------------------------------
+    tokenizer (transformers.tokenizer): Pretrained Tokenizer
+    n_samples (int): Number of Samples for Training and Validation (in debug mode)
+    max_input_length (int): Maximal length of tokens per sentence in the input sequence
+    max_target_length (int): Maximal length of tokens per sentence in the target sequence
+    debug (boolean): Debugging mode
+    ------------------------------------------------------------------------------------------------------------
+    returns tokenized dataset as dataset dict {train, validation, test}
+    ------------------------------------------------------------------------------------------------------------
+    TODO(b-turan): Generalize for other Datasets, 
+    TODO(b-turan): Attention: tokenization of full dataset takes long time
+    '''    
+    print(40*'-' + ' ... Loading Datasets ... ' + 40*'-')
+    split_ds = datasets.load_dataset('wmt16', 'de-en') # {train, validation, test}
     
+    if debug:
+            # reduce dataset for debug purposes
+            split_ds = datasets.Dataset.from_dict(split_ds['train'][:n_samples]).train_test_split(test_size=0.1)
+            split_ds['validation'] = split_ds.pop('test')
+    
+    print(40*'-' + ' ... Tokenizing Datasets ... ' + 40*'-')
+    tokenized_datasets = split_ds.map(
+            functools.partial(
+                    preprocess_function, 
+                    tokenizer=tokenizer, 
+                    max_input_length=max_input_length, 
+                    max_target_length=max_target_length), 
+                    batched=True, remove_columns=split_ds["train"].column_names
+    )
+    return tokenized_datasets
 
-def _prepare_ds(tokenizer, number_of_training_samples, seq_length):
-        ''' Preparation of dataset for torch.dataloaders '''
-        print(40*'-' + ' Preparing Data' + 40*'-')
-        # available wmt16 language pairs: ['cs-en', 'de-en', 'fi-en', 'ro-en', 'ru-en', 'tr-en']
-        ds = datasets.load_dataset('wmt16', 'de-en') # {train, validation, test}
-        print(f"Train Dataset is cut to {number_of_training_samples} samples for development purposes! Remove cutting for full training.")
-        train_ds, validation_ds, test_ds = ds['train'][:number_of_training_samples], ds['validation'], ds['test']
-        train_ds, validation_ds, test_ds = map(convert_for_tokenizer, (train_ds, validation_ds, test_ds))
-        # add tokenized columns to dataset
-        train_ds = train_ds.map(functools.partial(_tokenize, tokenizer=tokenizer, seq_length=seq_length), batched=True)
-        validation_ds = validation_ds.map(functools.partial(_tokenize, tokenizer=tokenizer, seq_length=seq_length), batched=True)
-        test_ds = test_ds.map(functools.partial(_tokenize, tokenizer=tokenizer, seq_length=seq_length), batched=True)
-        print(40*'-' + 'Data got tokenized' + 40*'-')
-        # convert columns to torch tensors
-        train_ds.set_format(type='torch', columns=['src_ids', 'trg_ids', 'attention_mask'])
-        validation_ds.set_format(type='torch', columns=['src_ids', 'trg_ids', 'attention_mask'])
-        test_ds.set_format(type='torch', columns=['src_ids', 'trg_ids', 'attention_mask'])    
-        return train_ds, validation_ds, test_ds 
 
-def get_dataloader(train_ds, validation_ds, test_ds, batch_size, num_workers):
-        ''' Returns train, validation, test dataloaders '''
-        train_dataloader = th.utils.data.DataLoader(
-                train_ds,
-                batch_size=batch_size,
-                drop_last=True,
-                shuffle=True,
-                num_workers=num_workers
-        )
-        validation_dataloader = th.utils.data.DataLoader(
-                validation_ds,
-                batch_size=batch_size,
-                drop_last=False,
-                shuffle=True,
-                num_workers=num_workers
-        )
-        validation_dataloader = th.utils.data.DataLoader(
-                test_ds,
-                batch_size=batch_size,
-                drop_last=False,
-                shuffle=True,
-                num_workers=num_workers
-        )
-        print(40*'-' + 'Dataloader got initialized' + 40*'-')
-        return train_dataloader, validation_dataloader, test_ds
+def get_dataloader(tokenizer, model, tokenized_datasets, batch_size, num_workers):
+    ''' Returns train, validation '''
+    data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
+    train_dataloader = th.utils.data.DataLoader(
+            tokenized_datasets['train'],
+            batch_size=batch_size,
+            drop_last=True,
+            shuffle=True,
+            collate_fn=data_collator,
+            num_workers=num_workers
+    )
+    validation_dataloader = th.utils.data.DataLoader(
+            tokenized_datasets['validation'],
+            batch_size=batch_size,
+            collate_fn=data_collator,
+            num_workers=num_workers
+    )
+    return train_dataloader, validation_dataloader
 
