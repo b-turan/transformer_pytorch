@@ -37,6 +37,7 @@ def validation_epoch(model, dataloader, metric, tokenizer, device):
     ------------------------------------
     model (nn.model): Torch model
     dataloader (torch.dataloader): Dataloader
+    metric (Datasets.metric): SacreBleu Metric
     tokenizer (transformer.tokenizer): Tokenizer
     device (torch.device): cuda or cpu
     ------------------------------------
