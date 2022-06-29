@@ -2,10 +2,10 @@ import math
 import time
 
 import datasets
+import sh
 import torch as th
 import transformers
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
 
 from pre_processor.pre_processor import get_dataloader, tokenize_datasets
 from training_func.epoch import get_bleu_score, train_epoch, validation_epoch
@@ -14,6 +14,9 @@ from utils import arg_parser, utils
 device = th.device('cuda' if th.cuda.is_available() else 'cpu')
 print("Running on Device:", device)
 
+# remove and recreate logs folder for development purposes
+sh.rm('-r', '-f', 'runs')
+sh.mkdir('runs')
 
 def main():
     parser = arg_parser.create_parser()
