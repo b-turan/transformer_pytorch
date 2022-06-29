@@ -87,7 +87,7 @@ def main():
 
             # validation loop (sacrebleu score)
             bleu_results = validation_epoch(model, validation_dataloader, metric, tokenizer, device)
-            print(f"epoch {epoch}, BLEU score: {bleu_results['score']:.2f}")
+            print(f"epoch {epoch}, SacreBLEU score: {bleu_results['score']:.2f}")
 
             # logging
             writer.add_scalar("Loss/train", train_loss, epoch)
@@ -97,7 +97,7 @@ def main():
         # TODO: finish implementation
         # validation loop
         bleu_results = validation_epoch(model, validation_dataloader, metric, tokenizer, device)
-        print(f"epoch {epoch}, BLEU score: {bleu_results['score']:.2f}")
+        print(f"epoch {epoch}, SacreBLEU score: {bleu_results['score']:.2f}")
 
 
 if __name__ == '__main__':
