@@ -6,6 +6,9 @@ import transformers
 
 
 def preprocess_function(examples, tokenizer, max_input_length, max_target_length):
+    '''
+    TODO: add docstring
+    '''
     prefix = "translate English to German: "
     inputs = [prefix + ex["en"] for ex in examples["translation"]]
     targets = [ex["de"] for ex in examples["translation"]]
@@ -56,7 +59,19 @@ def tokenize_datasets(tokenizer, n_samples, max_input_length, max_target_length,
 
 
 def get_dataloader(tokenizer, model, tokenized_datasets, batch_size, num_workers):
-    ''' Returns train, validation '''
+    ''' 
+    Returns train and validation dataloader.
+        ------------------------------------------------------------------------------------------------------------
+    tokenizer (transformers.tokenizer): Pretrained Tokenizer
+    model (nn.model): Torch model
+    tokenized_datasets (Dataset.dict): Training and Validation Dataset with input_ids, attention_mask and labels
+    batch_size (int): Batch Size
+    num_workers (int): Number of Workers for Dataloader
+    ------------------------------------------------------------------------------------------------------------
+    returns tokenized dataset as dataset dict {train, validation, test}
+    ------------------------------------------------------------------------------------------------------------
+
+    '''
     data_collator = transformers.DataCollatorForSeq2Seq(tokenizer, model=model)
     train_dataloader = th.utils.data.DataLoader(
             tokenized_datasets['train'],
