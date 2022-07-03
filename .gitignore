@@ -7,4 +7,3 @@
 *.pyc 
 test.py
 /distilbert-base-uncased-finetuned-emotion
-translation_tutorial.py
