@@ -1,6 +1,7 @@
 import argparse
 
 
+# fmt: off
 def create_parser():
     """
     Arguments devided into Trainer, Model and Program specific arguments.
@@ -9,9 +10,9 @@ def create_parser():
     # Trainer args  (gpus, epochs etc.)
     parser.add_argument("-g", "--gpus", type=int, metavar="", help="Number of GPUS, (None for CPU)", default=1)
     parser.add_argument("--batch_size", type=int, metavar="", help="Batch Size", default=8)
-    parser.add_argument("-lr","--learning_rate", type=float, metavar="", help="Initial Learning Rate", default= 5e-4)
+    parser.add_argument("-lr", "--learning_rate", type=float, metavar="", help="Initial Learning Rate", default= 5e-4)
     parser.add_argument("--num_warmup_steps", type=int, metavar="", help="Number of Warmup Steps", default= 100)
-    parser.add_argument("-e","--epochs", type=int, metavar="", help="Number of Epochs", default= 2)
+    parser.add_argument("-e", "--epochs", type=int, metavar="", help="Number of Epochs", default= 2)
     parser.add_argument("--n_samples", type=int, metavar="", help="Number of Samples", default= 20000)
     parser.add_argument("--momentum", type=float, metavar="", help="Momentum", default= .9)
     parser.add_argument("--clip", type=int, metavar="", help="Gradient Clipping", default= 1)
@@ -27,5 +28,4 @@ def create_parser():
     parser.add_argument('--debug', action=argparse.BooleanOptionalAction)
 
     return parser
-
-
+# fmt: on

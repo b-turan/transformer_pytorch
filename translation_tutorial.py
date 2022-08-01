@@ -4,25 +4,30 @@ from accelerate import Accelerator
 from datasets import load_dataset, load_metric
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-from transformers import (AdamW, AutoConfig, AutoModelForSeq2SeqLM,
-                          AutoTokenizer, DataCollatorForSeq2Seq,
-                          T5ForConditionalGeneration, get_scheduler)
+from transformers import (
+    AdamW,
+    AutoConfig,
+    AutoTokenizer,
+    DataCollatorForSeq2Seq,
+    T5ForConditionalGeneration,
+    get_scheduler,
+)
 
 # raw_datasets = load_dataset("kde4", lang1="en", lang2="fr")
-raw_datasets = load_dataset('wmt16', 'de-en') # {train, validation, test}
+raw_datasets = load_dataset("wmt16", "de-en")  # {train, validation, test}
 
-split_datasets = raw_datasets["train"].train_test_split(train_size=0.3, seed=20)
-split_datasets = split_datasets['train'].train_test_split(train_size=0.9, seed=20)
+split_datasets = raw_datasets["train"].train_test_split(train_size=0.5, seed=20)
+split_datasets = split_datasets["train"].train_test_split(train_size=0.9, seed=20)
 split_datasets["validation"] = split_datasets.pop("test")
 
 model_checkpoint = "Helsinki-NLP/opus-mt-en-fr"
-model_checkpoint = 't5-small'
+model_checkpoint = "t5-small"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, return_tensors="pt")
 
-#############################################################################################################
-config = AutoConfig.from_pretrained(model_checkpoint) # see transformers/issues/14674
+###################################################################################################
+config = AutoConfig.from_pretrained(model_checkpoint)  # see transformers/issues/14674
 model = T5ForConditionalGeneration(config)
-#############################################################################################################
+###################################################################################################
 
 max_input_length = 64
 max_target_length = 64
@@ -42,13 +47,13 @@ def preprocess_function(examples):
 
 
 def initialize_weights(m):
-    ''' 
+    """
     Modifies weight initialization,
     https://machinelearningmastery.com/weight-initialization-for-deep-learning-neural-networks/.
     ------------------------------------
     Returns initialized model 'm'
-    '''
-    if hasattr(m, 'weight') and m.weight.dim() > 1:
+    """
+    if hasattr(m, "weight") and m.weight.dim() > 1:
         torch.nn.init.xavier_uniform_(m.weight.data)
 
 
@@ -88,15 +93,15 @@ def postprocess(predictions, labels):
     return decoded_preds, decoded_labels
 
 
-tokenized_datasets = split_datasets.map(preprocess_function, batched=True, remove_columns=split_datasets["train"].column_names)
+tokenized_datasets = split_datasets.map(
+    preprocess_function, batched=True, remove_columns=split_datasets["train"].column_names
+)
 # model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
 
 # model.apply(initialize_weights)
 
 data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
 metric = load_metric("sacrebleu")
-
-
 
 tokenized_datasets.set_format("torch")
 train_dataloader = DataLoader(
@@ -109,14 +114,14 @@ eval_dataloader = DataLoader(
     tokenized_datasets["validation"], collate_fn=data_collator, batch_size=32
 )
 
-optimizer = AdamW(model.parameters(), lr=2e-5) # TODO: replace with torch.optim.AdamW 
+optimizer = AdamW(model.parameters(), lr=2e-5)  # TODO: replace with torch.optim.AdamW
 
 accelerator = Accelerator()
 model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
     model, optimizer, train_dataloader, eval_dataloader
 )
 
-num_train_epochs = 10
+num_train_epochs = 50
 num_update_steps_per_epoch = len(train_dataloader)
 num_training_steps = num_train_epochs * num_update_steps_per_epoch
 
@@ -136,7 +141,8 @@ for epoch in range(num_train_epochs):
         outputs = model(**batch)
         loss = outputs.loss
         accelerator.backward(loss)
-        # TODO: Use clipgrad_norm() instead of torch.nn.utils.clip_grad_norm_ and clipgrad_value() instead of torch.nn.utils.clip_grad_value_.
+        # TODO: Use clipgrad_norm() instead of torch.nn.utils.clip_grad_norm_
+        # and clipgrad_value() instead of torch.nn.utils.clip_grad_value.
         optimizer.step()
         lr_scheduler.step()
         optimizer.zero_grad()
@@ -164,5 +170,5 @@ for epoch in range(num_train_epochs):
         metric.add_batch(predictions=decoded_preds, references=decoded_labels)
 
     # TODO: Add logging
-    results = metric.compute() 
+    results = metric.compute()
     print(f"epoch {epoch}, BLEU score: {results['score']:.2f}")

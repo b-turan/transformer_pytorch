@@ -11,19 +11,20 @@ from pre_processor.pre_processor import get_dataloader, tokenize_datasets
 from training_func.epoch import train_epoch, validation_epoch
 from utils import arg_parser, utils
 
-device = th.device('cuda' if th.cuda.is_available() else 'cpu')
+device = th.device("cuda" if th.cuda.is_available() else "cpu")
 print("Running on Device:", device)
 
 # remove and recreate logs folder for development purposes
-sh.rm('-r', '-f', 'runs')
-sh.mkdir('runs')
+sh.rm("-r", "-f", "runs")
+sh.mkdir("runs")
+
 
 def main():
     parser = arg_parser.create_parser()
     args = parser.parse_args()
     # initialize tensorboard
-    writer = SummaryWriter() 
-    
+    writer = SummaryWriter()
+
     # trainer specific args
     IS_TRAINING = args.train
     N_EPOCHS = args.epochs
@@ -33,48 +34,53 @@ def main():
     NUM_WARMUP_STEPS = args.num_warmup_steps
     CLIP = args.clip
     NUM_WORKERS = args.num_workers
-    MOMENTUM = args.momentum
+    # MOMENTUM = args.momentum
     # model specific args
     MODEL = args.model
     IS_PRETRAINED = args.is_pretrained
     MAX_INPUT_LENGTH = args.max_input_length
     MAX_TARGET_LENGTH = args.max_target_length
     # program specific args
-    SEED = args.seed
+    # SEED = args.seed
     DEBUG = args.debug
 
     # initialize {is_pretrained} T5-Tokenizer and T5-Model
-    tokenizer = transformers.T5Tokenizer.from_pretrained(MODEL) 
+    tokenizer = transformers.T5Tokenizer.from_pretrained(MODEL)
     model = utils.build_model(MODEL, IS_PRETRAINED, device)
 
     # data pre-processing / tokenization
-    tokenized_datasets = tokenize_datasets(tokenizer=tokenizer, 
-                                        n_samples = N_SAMPLES,
-                                        max_input_length = MAX_INPUT_LENGTH, 
-                                        max_target_length = MAX_TARGET_LENGTH, 
-                                        debug = DEBUG
+    tokenized_datasets = tokenize_datasets(
+        tokenizer=tokenizer,
+        n_samples=N_SAMPLES,
+        max_input_length=MAX_INPUT_LENGTH,
+        max_target_length=MAX_TARGET_LENGTH,
+        debug=DEBUG,
     )
-    train_dataloader, validation_dataloader = get_dataloader(tokenizer, 
-                                                            model, 
-                                                            tokenized_datasets,
-                                                            batch_size = BATCH_SIZE, 
-                                                            num_workers = NUM_WORKERS
+    train_dataloader, validation_dataloader = get_dataloader(
+        tokenizer, model, tokenized_datasets, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS
     )
-    optimizer = th.optim.Adam(model.parameters(), lr = LEARNING_RATE)
+    optimizer = th.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     num_training_steps = N_EPOCHS * len(train_dataloader)
-    lr_scheduler = transformers.get_scheduler(name="linear", optimizer=optimizer, 
-                                              num_warmup_steps = NUM_WARMUP_STEPS, 
-                                              num_training_steps = num_training_steps)
-    
+    lr_scheduler = transformers.get_scheduler(
+        name="linear",
+        optimizer=optimizer,
+        num_warmup_steps=NUM_WARMUP_STEPS,
+        num_training_steps=num_training_steps,
+    )
+
     # original paper of SacreBLEU by Matt Post: https://arxiv.org/pdf/1804.08771.pdf
     # additional material: # https://www.youtube.com/watch?v=M05L1DhFqcw
     metric = datasets.load_metric("sacrebleu")
-    
-    print(20*'---' + f'\ The model has {utils.count_parameters(model):,} trainable parameters ' + 20*'---')
-    
+
+    print(
+        20 * "---"
+        + f"The model has {utils.count_parameters(model):,} trainable parameters "
+        + 20 * "---"
+    )
+
     # Training/Validation
     if IS_TRAINING:
-        print(40*'-' + ' Start Training ' + 40*'-')
+        print(40 * "-" + " Start Training " + 40 * "-")
         for epoch in range(N_EPOCHS):
             start_time = time.time()
             # train loop
@@ -82,8 +88,8 @@ def main():
             end_time = time.time()
             epoch_mins, epoch_secs = utils.epoch_time(start_time, end_time)
 
-            print(f'Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s')
-            print(f'\t Train Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}')
+            print(f"Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s")
+            print(f"\t Train Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}")
 
             # validation loop (sacrebleu score)
             bleu_results = validation_epoch(model, validation_dataloader, metric, tokenizer, device)
@@ -91,7 +97,7 @@ def main():
 
             # logging
             writer.add_scalar("Loss/train", train_loss, epoch)
-            writer.add_scalar("SacreBLEU/valid", bleu_results['score'], epoch)
+            writer.add_scalar("SacreBLEU/valid", bleu_results["score"], epoch)
         writer.flush()
     else:
         # TODO: finish implementation
@@ -100,5 +106,5 @@ def main():
         print(f"epoch {epoch}, SacreBLEU score: {bleu_results['score']:.2f}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

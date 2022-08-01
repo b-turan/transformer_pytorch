@@ -4,18 +4,18 @@ from tqdm import tqdm
 
 
 def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, device):
-    '''
+    """
     Trains model on the entire dataset for one epoch.
     ------------------------------------
     model (nn.model): Torch model
     train_dataloader (torch.dataloader): Dataloader
     optimizer (th.optim): Optimizer
     lr_scheduler (transformers.get_scheduler): learning rate scheduler
-    CLIP (int): Gradient Clipping    
+    CLIP (int): Gradient Clipping
     device (torch.device): cuda or cpu
     ------------------------------------
     returns average epoch loss
-    '''
+    """
     model.train()
     epoch_loss = 0
     for batch in tqdm(train_dataloader):
@@ -23,7 +23,7 @@ def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, device):
         outputs = model(**batch)
         loss = outputs.loss
         loss.backward()
-        th.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
+        # th.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
         optimizer.step()
         lr_scheduler.step()
         optimizer.zero_grad()
@@ -32,7 +32,7 @@ def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, device):
 
 
 def validation_epoch(model, dataloader, metric, tokenizer, device):
-    '''
+    """
     Evaluates model on the entire dataset.
     ------------------------------------
     model (nn.model): Torch model
@@ -42,14 +42,13 @@ def validation_epoch(model, dataloader, metric, tokenizer, device):
     device (torch.device): cuda or cpu
     ------------------------------------
     returns average epoch validation loss
-    '''
+    """
     model.eval()
     for batch in tqdm(dataloader):
         batch = batch.to(device)
         with th.no_grad():
-            generated_tokens = model.generate(batch["input_ids"], 
-                                            attention_mask=batch["attention_mask"],
-                                            max_length=128
+            generated_tokens = model.generate(
+                batch["input_ids"], attention_mask=batch["attention_mask"], max_length=128
             )
         labels = batch["labels"]
         decoded_preds, decoded_labels = postprocess(generated_tokens, labels, tokenizer)
@@ -59,7 +58,7 @@ def validation_epoch(model, dataloader, metric, tokenizer, device):
 
 
 def postprocess(predictions, labels, tokenizer):
-    '''
+    """
     Postprecessor to generate translations by the model.
     ------------------------------------
     predictions (torch.tensor): Model's prediction
@@ -67,7 +66,7 @@ def postprocess(predictions, labels, tokenizer):
     tokenizer (transformer.tokenizer): Tokenizer
     ------------------------------------
     returns decoded translations and decoded labels
-    '''
+    """
     predictions = predictions.cpu().numpy()
     labels = labels.cpu().numpy()
 
