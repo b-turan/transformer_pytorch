@@ -12,6 +12,7 @@
 	- [x] Integrate t5-small (66M parameters) instead of MarianMT 
 	- [x] Integrate WMT16 (en2de) instead of KDE4 (en2fr) dataset
 	- [x] running on small fraction of original WMT16 dataset due to hardware limitations
+	- [x] Settings
 		- train_size=0.3*0.9 of original training size, 
 		- valid_size=0.3*0.1 of original training_size
 		- max_input_length = 64
