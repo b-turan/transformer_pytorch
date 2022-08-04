@@ -14,15 +14,21 @@
 	- [x] running on small fraction of original WMT16 dataset due to hardware limitations
 		- train_size=0.3*0.9 of original training size, 
 		- valid_size=0.3*0.1 of original training_size
+		- max_input_length = 64
+		- max_target_length = 64
+		- batch_size=16
+		- num_train_epochs = 30
+		- generated tokens max_length=64
+		- pad_index=-100
 	- [x] use accelerator 
-	- [x] run 20 epochs on wmt16 and log sacrebleu scores on tensorboard -> sacrebleu: ~21
+	- [x] run 30 epochs on wmt16 and log sacrebleu scores on tensorboard -> score above 20
 	- [ ] check performance on full dataset utilizing GPU-Cluster
 
 * [ ] Synchronize own implementation with tutorial 
-	- [ ] tokenize_as_target
-	- [ ] accelerator
-	- [ ] PAD tokens mapped to correct id for loss
-	- [ ] run on small fraction of wmt16 dataset for 20 Epochs
+	- [ ] integrate tokenize_as_target method
+	- [ ] use accelerator 
+	- [ ] pad_index=-100
+	- [ ] sychronize with above settings
 
 * [ ] If above is successful: Prepare Training for 4x NVIDIA A100 80GB GPUs
     - [ ] Find paper which pretrains on WMT16
