@@ -1,33 +1,45 @@
 import numpy as np
+import sh
 import torch
 from accelerate import Accelerator
 from datasets import load_dataset, load_metric
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 from transformers import (
     AdamW,
     AutoConfig,
+    AutoModelForSeq2SeqLM,
     AutoTokenizer,
     DataCollatorForSeq2Seq,
     T5ForConditionalGeneration,
     get_scheduler,
 )
 
-# raw_datasets = load_dataset("kde4", lang1="en", lang2="fr")
-raw_datasets = load_dataset("wmt16", "de-en")  # {train, validation, test}
+#### See Course on translation: https://huggingface.co/course/chapter7/4?fw=pt ####
 
-split_datasets = raw_datasets["train"].train_test_split(train_size=0.5, seed=20)
+# remove and recreate logs folder for development purposes
+sh.rm("-r", "-f", "runs")
+sh.mkdir("runs")
+
+
+# raw_datasets = load_dataset("kde4", lang1="en", lang2="de")
+raw_datasets = load_dataset("wmt16", "de-en")  # {train, validation, test}
+split_datasets = raw_datasets["train"].train_test_split(train_size=0.3, seed=20)
 split_datasets = split_datasets["train"].train_test_split(train_size=0.9, seed=20)
 split_datasets["validation"] = split_datasets.pop("test")
 
-model_checkpoint = "Helsinki-NLP/opus-mt-en-fr"
+# model_checkpoint = "Helsinki-NLP/opus-mt-en-fr"
 model_checkpoint = "t5-small"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, return_tensors="pt")
 
 ###################################################################################################
 config = AutoConfig.from_pretrained(model_checkpoint)  # see transformers/issues/14674
 model = T5ForConditionalGeneration(config)
+# model = AutoModelForSeq2SeqLM.from_config(config)
 ###################################################################################################
+
+writer = SummaryWriter()
 
 max_input_length = 64
 max_target_length = 64
@@ -96,7 +108,6 @@ def postprocess(predictions, labels):
 tokenized_datasets = split_datasets.map(
     preprocess_function, batched=True, remove_columns=split_datasets["train"].column_names
 )
-# model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
 
 # model.apply(initialize_weights)
 
@@ -108,7 +119,7 @@ train_dataloader = DataLoader(
     tokenized_datasets["train"],
     shuffle=True,
     collate_fn=data_collator,
-    batch_size=32,
+    batch_size=16,
 )
 eval_dataloader = DataLoader(
     tokenized_datasets["validation"], collate_fn=data_collator, batch_size=32
@@ -121,7 +132,7 @@ model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
     model, optimizer, train_dataloader, eval_dataloader
 )
 
-num_train_epochs = 50
+num_train_epochs = 30
 num_update_steps_per_epoch = len(train_dataloader)
 num_training_steps = num_train_epochs * num_update_steps_per_epoch
 
@@ -134,6 +145,7 @@ lr_scheduler = get_scheduler(
 
 
 progress_bar = tqdm(range(num_training_steps))
+
 for epoch in range(num_train_epochs):
     # Training
     model.train()
@@ -141,12 +153,15 @@ for epoch in range(num_train_epochs):
         outputs = model(**batch)
         loss = outputs.loss
         accelerator.backward(loss)
-        # TODO: Use clipgrad_norm() instead of torch.nn.utils.clip_grad_norm_
-        # and clipgrad_value() instead of torch.nn.utils.clip_grad_value.
+        # see https://huggingface.co/docs/accelerate/accelerator
+        # TODO (when using accelerator): Use clipgrad_norm() instead of torch.nn.utils.clip_grad_norm_
+        # TODO (when using accelerator): and clipgrad_value() instead of torch.nn.utils.clip_grad_value
         optimizer.step()
         lr_scheduler.step()
         optimizer.zero_grad()
         progress_bar.update(1)
+
+    # Evaluation
     model.eval()
     for batch in tqdm(eval_dataloader):
         with torch.no_grad():
@@ -172,3 +187,4 @@ for epoch in range(num_train_epochs):
     # TODO: Add logging
     results = metric.compute()
     print(f"epoch {epoch}, BLEU score: {results['score']:.2f}")
+    writer.add_scalar("SacreBLEU Score Validation Set", results["score"], epoch)
