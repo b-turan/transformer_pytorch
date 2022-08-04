@@ -21,6 +21,7 @@
 		- num_train_epochs = 30
 		- generated tokens max_length=64
 		- pad_index=-100
+		- lr=2e-5
 	- [x] use accelerator 
 	- [x] run 30 epochs on wmt16 and log sacrebleu scores on tensorboard -> score above 20
 	- [ ] check performance on full dataset utilizing GPU-Cluster
