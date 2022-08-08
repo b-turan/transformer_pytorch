@@ -8,7 +8,7 @@
 
 
 ## To Do
-* [x] Check Neural Machine Translation [Tutorial](https://huggingface.co/course/chapter7/4?fw=pt) by HuggingFace
+* [x] Check Neural [Machine Translation Tutorial](https://huggingface.co/course/chapter7/4?fw=pt) by HuggingFace
 	- [x] Integrate t5-small (66M parameters) instead of MarianMT 
 	- [x] Integrate WMT16 (en2de) instead of KDE4 (en2fr) dataset
 	- [x] running on small fraction of original WMT16 dataset due to hardware limitations
