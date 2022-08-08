@@ -43,6 +43,9 @@ max_target_length = 64
 
 
 def preprocess_function(examples):
+    """
+    TODO(b-turan): Add prefix for t5-model.
+    """
     inputs = [ex["en"] for ex in examples["translation"]]
     targets = [ex["de"] for ex in examples["translation"]]
     model_inputs = tokenizer(inputs, max_length=max_input_length, truncation=True)
@@ -119,10 +122,11 @@ train_dataloader = DataLoader(
     batch_size=16,
 )
 eval_dataloader = DataLoader(
-    tokenized_datasets["validation"], collate_fn=data_collator, batch_size=32
+    tokenized_datasets["validation"], collate_fn=data_collator, batch_size=16
 )
 
 optimizer = AdamW(model.parameters(), lr=2e-5)  # TODO: replace with torch.optim.AdamW
+# optimizer = th.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 accelerator = Accelerator()
 model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
@@ -139,7 +143,6 @@ lr_scheduler = get_scheduler(
     num_warmup_steps=0,
     num_training_steps=num_training_steps,
 )
-
 
 progress_bar = tqdm(range(num_training_steps))
 
@@ -181,7 +184,6 @@ for epoch in range(num_train_epochs):
         decoded_preds, decoded_labels = postprocess(predictions_gathered, labels_gathered)
         metric.add_batch(predictions=decoded_preds, references=decoded_labels)
 
-    # TODO: Add logging
     results = metric.compute()
     print(f"epoch {epoch}, BLEU score: {results['score']:.2f}")
     writer.add_scalar("SacreBLEU Score Validation Set", results["score"], epoch)
