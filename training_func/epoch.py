@@ -3,7 +3,7 @@ import torch as th
 from tqdm import tqdm
 
 
-def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, device):
+def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, device, accelerator):
     """
     Trains model on the entire dataset for one epoch.
     ------------------------------------
@@ -13,6 +13,7 @@ def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, device):
     lr_scheduler (transformers.get_scheduler): learning rate scheduler
     CLIP (int): Gradient Clipping
     device (torch.device): cuda or cpu
+    accelerator (accelerator): wraps up model (will be deleted)
     ------------------------------------
     returns average epoch loss
     """
@@ -22,7 +23,8 @@ def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, device):
         batch = batch.to(device)
         outputs = model(**batch)
         loss = outputs.loss
-        loss.backward()
+        # loss.backward()
+        accelerator.backward(loss)
         # th.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
         optimizer.step()
         lr_scheduler.step()
@@ -31,27 +33,51 @@ def train_epoch(model, train_dataloader, optimizer, lr_scheduler, CLIP, device):
     return epoch_loss / len(train_dataloader)
 
 
-def validation_epoch(model, dataloader, metric, tokenizer, device):
+def validation_epoch(model, validation_dataloader, metric, tokenizer, device, accelerator, MAX_TARGET_LENGTH):
     """
     Evaluates model on the entire dataset.
     ------------------------------------
     model (nn.model): Torch model
-    dataloader (torch.dataloader): Dataloader
+    validation_dataloader (torch.dataloader): Dataloader
     metric (Datasets.metric): SacreBleu Metric
     tokenizer (transformer.tokenizer): Tokenizer
     device (torch.device): cuda or cpu
+    accelerator (accelerator): wraps up model (will be deleted)
+    MAX_TARGET_LENGTH (int): max length of generated tokens
     ------------------------------------
     returns average epoch validation loss
+
+    # TOOD(b-turan): choose (des)integeration of accelerator
     """
     model.eval()
-    for batch in tqdm(dataloader):
+    for batch in tqdm(validation_dataloader):
         batch = batch.to(device)
         with th.no_grad():
-            generated_tokens = model.generate(
-                batch["input_ids"], attention_mask=batch["attention_mask"], max_length=128
+            
+            # generated_tokens = model.generate(
+            #     batch["input_ids"], attention_mask=batch["attention_mask"], max_length=128
+            # )
+            generated_tokens = accelerator.unwrap_model(model).generate(
+                batch["input_ids"],
+                attention_mask=batch["attention_mask"],
+                max_length=MAX_TARGET_LENGTH,
             )
+
         labels = batch["labels"]
-        decoded_preds, decoded_labels = postprocess(generated_tokens, labels, tokenizer)
+        labels = accelerator.pad_across_processes(labels, dim=1, pad_index=-100)
+
+        # Necessary to pad predictions and labels for being gathered
+        generated_tokens = accelerator.pad_across_processes(
+            generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
+        )
+        
+        
+        predictions_gathered = accelerator.gather(generated_tokens)
+        labels_gathered = accelerator.gather(labels)
+
+        # decoded_preds, decoded_labels = postprocess(generated_tokens, labels, tokenizer)
+        decoded_preds, decoded_labels = postprocess(predictions_gathered, labels_gathered, tokenizer)
+
         metric.add_batch(predictions=decoded_preds, references=decoded_labels)
     results = metric.compute()
     return results
