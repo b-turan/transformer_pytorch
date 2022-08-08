@@ -32,12 +32,9 @@ split_datasets["validation"] = split_datasets.pop("test")
 # model_checkpoint = "Helsinki-NLP/opus-mt-en-fr"
 model_checkpoint = "t5-small"
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, return_tensors="pt")
-
-###################################################################################################
 config = AutoConfig.from_pretrained(model_checkpoint)  # see transformers/issues/14674
-model = T5ForConditionalGeneration(config)
+model = T5ForConditionalGeneration(config, torch_dtype="auto")
 # model = AutoModelForSeq2SeqLM.from_config(config)
-###################################################################################################
 
 writer = SummaryWriter()
 
