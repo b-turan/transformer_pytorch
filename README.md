@@ -26,11 +26,12 @@
 	- [x] run 30 epochs on wmt16 and log sacrebleu scores on tensorboard -> score above 20
 	- [ ] check performance on full dataset utilizing GPU-Cluster
 
-* [ ] Synchronize own implementation with tutorial 
-	- [ ] integrate tokenize_as_target method
-	- [ ] use accelerator 
-	- [ ] pad_index=-100
-	- [ ] sychronize with above settings
+* [x] Synchronize own implementation with tutorial 
+	- [x] integrate tokenize_as_target method
+	- [x] use accelerator 
+	- [x] pad_index=-100
+	- [x] sychronize with above settings
+	- [ ] run for 30 epochs -> done on the 10th of august
 
 * [ ] If above is successful: Prepare Training for 4x NVIDIA A100 80GB GPUs
     - [ ] Find paper which pretrains on WMT16
