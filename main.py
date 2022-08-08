@@ -98,7 +98,7 @@ def main():
             train_loss = train_epoch(
                 model, train_dataloader, optimizer, lr_scheduler, CLIP, device, accelerator
             )
-            
+
             end_time = time.time()
             epoch_mins, epoch_secs = utils.epoch_time(start_time, end_time)
 
@@ -106,7 +106,15 @@ def main():
             print(f"\t Train Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}")
 
             # validation loop (sacrebleu score)
-            bleu_results = validation_epoch(model, validation_dataloader, metric, tokenizer, device)
+            bleu_results = validation_epoch(
+                model,
+                validation_dataloader,
+                metric,
+                tokenizer,
+                device,
+                accelerator,
+                MAX_TARGET_LENGTH,
+            )
             print(f"epoch {epoch}, SacreBLEU score: {bleu_results['score']:.2f}")
 
             # logging
