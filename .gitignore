@@ -5,5 +5,3 @@
 # pycache files
 */__pycache__
 *.pyc 
-test.py
-/distilbert-base-uncased-finetuned-emotion
