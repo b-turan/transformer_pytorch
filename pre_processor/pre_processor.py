@@ -35,19 +35,23 @@ def tokenize_datasets(tokenizer, n_samples, max_input_length, max_target_length,
     ------------------------------------------------------------------------------------------------------------
     returns tokenized dataset as dataset dict {train, validation, test}
     ------------------------------------------------------------------------------------------------------------
-    TODO(b-turan): Generalize for other Datasets,
+    TODO(b-turan): Generalize for other Datasets (add wmt16 language flag)
     TODO(b-turan): Attention: tokenization of full dataset takes long time
     """
 
     print(40 * "-" + " ... Loading Datasets ... " + 40 * "-")
-    split_datasets = datasets.load_dataset("wmt16", "de-en")  # {train, validation, test}
+    raw_datasets = datasets.load_dataset("wmt16", "de-en")  # {train, validation, test}
 
     if debug:
         # reduce dataset for debug purposes
-        split_datasets = datasets.Dataset.from_dict(
-            split_datasets["train"][:n_samples]
-        ).train_test_split(test_size=0.1)
+        # split_datasets = datasets.Dataset.from_dict(
+        #     raw_dataset["train"][:n_samples]
+        # ).train_test_split(test_size=0.1)
+        # split_datasets["validation"] = split_datasets.pop("test")
+        split_datasets = raw_datasets["train"].train_test_split(train_size=0.3, seed=20)
+        split_datasets = split_datasets["train"].train_test_split(train_size=0.9, seed=20)
         split_datasets["validation"] = split_datasets.pop("test")
+
 
     print(40 * "-" + " ... Tokenizing Datasets ... " + 40 * "-")
     tokenized_datasets = split_datasets.map(
