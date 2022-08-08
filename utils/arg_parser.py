@@ -22,7 +22,7 @@ def create_parser():
     parser.add_argument('--is_pretrained', action=argparse.BooleanOptionalAction)
     parser.add_argument("--model", type=str, metavar="", help="Choice of Dataset", default="t5-small")
     parser.add_argument("--max_input_length", type=int, metavar="", help="Maximal Number of Tokens per Sentence in Input Sequences", default=64)
-    parser.add_argument("--max_target_length", type=int, metavar="", help="Maximal Number of Tokens per Sentence in Target Sequences", default=64)
+    parser.add_argument("--max_target_length", type=int, metavar="", help="Maximal Number of Tokens per Sentence in Target Sequences and generated tokens", default=64)
     # Program arguments (data_path, save_dir, etc.)
     parser.add_argument("--seed", type=int, metavar="", help="Seed Choice", default=42)
     parser.add_argument('--debug', action=argparse.BooleanOptionalAction)
