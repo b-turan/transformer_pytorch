@@ -22,7 +22,6 @@ from transformers import (
 sh.rm("-r", "-f", "runs")
 sh.mkdir("runs")
 
-
 # raw_datasets = load_dataset("kde4", lang1="en", lang2="de")
 raw_datasets = load_dataset("wmt16", "de-en")  # {train, validation, test}
 split_datasets = raw_datasets["train"].train_test_split(train_size=0.3, seed=20)
@@ -150,12 +149,12 @@ for epoch in range(num_train_epochs):
     # Training
     model.train()
     for batch in train_dataloader:
-        outputs = model(**batch)
-        loss = outputs.loss
-        accelerator.backward(loss)
         # see https://huggingface.co/docs/accelerate/accelerator
         # TODO (when using accelerator): Use clipgrad_norm() instead of torch.nn.utils.clip_grad_norm_
         # TODO (when using accelerator): and clipgrad_value() instead of torch.nn.utils.clip_grad_value
+        outputs = model(**batch)
+        loss = outputs.loss
+        accelerator.backward(loss)
         optimizer.step()
         lr_scheduler.step()
         optimizer.zero_grad()
@@ -186,4 +185,5 @@ for epoch in range(num_train_epochs):
 
     results = metric.compute()
     print(f"epoch {epoch}, BLEU score: {results['score']:.2f}")
-    writer.add_scalar("SacreBLEU Score Validation Set", results["score"], epoch)
+    writer.add_scalar("SacreBLEU/valid", results["score"], epoch)
+    writer.flush

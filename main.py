@@ -25,7 +25,6 @@ def main():
     parser = arg_parser.create_parser()
     args = parser.parse_args()
     # initialize tensorboard
-    writer = SummaryWriter()
     accelerator = Accelerator()
 
     # trainer specific args
@@ -54,6 +53,7 @@ def main():
     # original paper of SacreBLEU by Matt Post: https://arxiv.org/pdf/1804.08771.pdf
     # additional material: # https://www.youtube.com/watch?v=M05L1DhFqcw
     metric = datasets.load_metric("sacrebleu")
+    writer = SummaryWriter(comment=MODEL)
 
     # data pre-processing / tokenization
     tokenized_datasets = tokenize_datasets(
@@ -91,6 +91,7 @@ def main():
     # Training/Validation
     if TRAIN:
         print(40 * "-" + " Start Training " + 40 * "-")
+        best_bleu_score = 0
         for epoch in range(N_EPOCHS):
             start_time = time.time()
 
@@ -116,10 +117,12 @@ def main():
                 MAX_TARGET_LENGTH,
             )
             print(f"epoch {epoch}, SacreBLEU score: {bleu_results['score']:.2f}")
-
             # logging
             writer.add_scalar("Loss/train", train_loss, epoch)
             writer.add_scalar("SacreBLEU/valid", bleu_results["score"], epoch)
+
+            if bleu_results["score"] > best_bleu_score:
+                th.save(model.state_dict(), f"runs/{writer.logdir}")
         writer.flush()
     else:
         # TODO: finish implementation
@@ -129,6 +132,7 @@ def main():
         )
         print(f"epoch {1}, SacreBLEU score: {bleu_results['score']:.2f}")
         writer.add_scalar("SacreBLEU/valid", bleu_results["score"], 1)
+        writer.flush()
 
 
 if __name__ == "__main__":
