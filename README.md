@@ -33,7 +33,13 @@
 	- [x] sychronize with above settings
 	- [x] run for 30 epochs -> sacrebleu score > 21
 
+* [ ] Open Questions to be solved with GPU-Cluster:
+	- [ ] How does warumup influence above experiments
+	- [ ] How does lr_scheduling influence above experiments
+	- [ ] How does modified weights initialization influence above experiments
+	- [ ] Everything above at the same time
+
 * [ ] If above is successful: Prepare Training for 4x NVIDIA A100 80GB GPUs
     - [ ] Find paper which pretrains on WMT16
-    - [ ] Define appropriate training, evaluation and test dataset
-    - [ ] Define appropriate training routine, i.e., warmup, learning_rate, lr_scheduler, batch_size, epochs etc.
+    - [ ] Define appropriate training, evaluation and test dataset for cluster
+    - [ ] Define appropriate training routine, i.e., warmup, learning_rate, lr_scheduler, batch_size, epochs, etc., for cluster
