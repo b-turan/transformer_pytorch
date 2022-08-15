@@ -1,4 +1,5 @@
 import math
+import os
 import time
 
 import datasets
@@ -13,6 +14,7 @@ from pre_processor.pre_processor import get_dataloader, tokenize_datasets
 from training_func.epoch import train_epoch, validation_epoch
 from utils import arg_parser, utils
 
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
 device = th.device("cuda" if th.cuda.is_available() else "cpu")
 print("Running on Device:", device)
 
