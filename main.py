@@ -55,7 +55,7 @@ def main():
     # original paper of SacreBLEU by Matt Post: https://arxiv.org/pdf/1804.08771.pdf
     # additional material: # https://www.youtube.com/watch?v=M05L1DhFqcw
     metric = datasets.load_metric("sacrebleu")
-    writer = SummaryWriter(comment=MODEL)
+    writer = SummaryWriter(comment=f"-{MODEL}")
 
     # data pre-processing / tokenization
     tokenized_datasets = tokenize_datasets(
@@ -106,7 +106,7 @@ def main():
             epoch_mins, epoch_secs = utils.epoch_time(start_time, end_time)
 
             print(f"Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s")
-            print(f"\t Train Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}")
+            print(f"\t Train Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):.3f}")
 
             # validation loop (sacrebleu score)
             bleu_results = validation_epoch(
@@ -124,7 +124,7 @@ def main():
             writer.add_scalar("SacreBLEU/valid", bleu_results["score"], epoch)
 
             if bleu_results["score"] > best_bleu_score:
-                th.save(model.state_dict(), f"runs/{writer.logdir}")
+                th.save(model.state_dict(), f"{writer.log_dir}/model_state.pt")
         writer.flush()
     else:
         # TODO: finish implementation
