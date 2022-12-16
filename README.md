@@ -16,8 +16,8 @@ python transformer_tutorial.py
 
 ## Exemplary Execution of main.py
 ```
-python main.py --epochs 30 --train --debug --n_samples 1000000
+python main.py --epochs 30 --train --debug
 ```
 
 ## Extension
-You can play around with the flags to include more datapoints or to train on a different language pair. The code is written in a modular way, so that it can be easily extended to other tasks.
+You can play around with the flags to include more datapoints or to train on a different language pair. The code is written in a modular way, so that it can be easily extended to other tasks. The number of samples can be reduced to an arbritrary integer, e.g., `--n_samples 1000000`.
