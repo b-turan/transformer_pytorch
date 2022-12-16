@@ -14,7 +14,7 @@ Then run the training script:
 python transformer_tutorial.py
 ```
 
-## Simple Execution of main.py
+## Exemplary Execution of main.py
 ```
 python main.py --epochs 30 --train --debug --n_samples 1000000
 ```
