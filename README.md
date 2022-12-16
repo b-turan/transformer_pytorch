@@ -1,45 +1,23 @@
 # transformer_pytorch
 
-## Masterplan
-1. Train transformer model on translation tasks for fixed number of epochs
-2. Apply pruning algorithms
-3. Analyze BLEU score before and after pruning
+This is a PyTorch implementation of the Transformer model using the [T5 transformer model](https://arxiv.org/abs/1910.10683) for Neural Machine Translation. For a detailed explanation of the model, please refer to the [blog post](https://towardsdatascience.com/transformers-141e32e69591) or check the arXiv paper. The code is based on the [PyTorch tutorial](https://pytorch.org/tutorials/beginner/transformer_tutorial.html) and the [Hugging Face tutorial](https://huggingface.co/course/chapter7/4?fw=pt). The code is written in a modular way, so that it can be easily extended to other tasks.
 
+## Simple Exemplary Usage
+First install the requirements:
+```
+conda env create --file env.yml -n transformer_pytorch
+conda activate transformer_pytorch
+```
 
+Then run the training script:
+```
+python transformer_tutorial.py
+```
 
-## To Do
-* [x] Check Neural [Machine Translation Tutorial](https://huggingface.co/course/chapter7/4?fw=pt) by HuggingFace
-	- [x] Integrate t5-small (66M parameters) instead of MarianMT 
-	- [x] Integrate WMT16 (en2de) instead of KDE4 (en2fr) dataset
-	- [x] running on small fraction of original WMT16 dataset due to hardware limitations
-	- [x] Settings
-		- train_size=0.3*0.9 of original training size -> 2d-4h-44min until termination with 1 GPU
-		- valid_size=0.3*0.1 of original training_size 
-		- max_input_length = 64
-		- max_target_length = 64
-		- batch_size=16
-		- num_train_epochs = 30
-		- generated tokens max_length=64
-		- pad_index=-100
-		- lr=2e-5
-	- [x] use accelerator 
-	- [x] run 30 epochs on wmt16 and log sacrebleu scores on tensorboard -> SacreBLEU score: 21.2
-	- [ ] check performance on full dataset utilizing GPU-Cluster
+## Simple Execution of main.py
+```
+python main.py --epochs 30 --train --debug --n_samples 1000000
+```
 
-* [x] Synchronize own implementation with tutorial 
-	- [x] integrate tokenize_as_target method
-	- [x] use accelerator 
-	- [x] pad_index=-100
-	- [x] sychronize with above settings
-	- [x] run for 30 epochs -> SacreBLEU score: 21.31 -> 2d-20h-07min until termination with 1 GPU
-
-* [ ] Open Questions to be solved with GPU-Cluster:
-	- [ ] How does warumup influence above experiments
-	- [ ] How does lr_scheduling influence above experiments
-	- [ ] How does modified weights initialization influence above experiments
-	- [ ] Everything above at the same time
-
-* [ ] If above is successful: Prepare Training for 4x NVIDIA A100 80GB GPUs
-    - [ ] Find paper which pretrains on WMT16
-    - [ ] Define appropriate training, evaluation and test dataset for cluster
-    - [ ] Define appropriate training routine, i.e., warmup, learning_rate, lr_scheduler, batch_size, epochs, etc., for cluster
+## Extension
+You can play around with the flags to include more datapoints or to train on a different language pair. The code is written in a modular way, so that it can be easily extended to other tasks.
